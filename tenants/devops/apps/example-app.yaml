@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devops-example-app    # CHANGE: unique app name
+  namespace: argocd
+spec:
+  project: devops             # CHANGE: must match project.yaml name
+
+  source:
+    repoURL: "https://github.com/your-org/devops-configs.git"  # CHANGE
+    targetRevision: HEAD
+    path: "overlays/dev"         # CHANGE: path to manifests
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: devops-dev     # CHANGE: must match allowed namespace prefix
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

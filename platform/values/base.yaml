@@ -1,0 +1,70 @@
+argo-cd:
+  ## Global
+  global:
+    logging:
+      level: info
+
+  ## Server
+  server:
+    replicas: 1
+    ingress:
+      enabled: false
+    service:
+      type: ClusterIP
+
+  ## Repo Server
+  repoServer:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 512Mi
+
+  ## Controller
+  controller:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: "2"
+        memory: 1Gi
+
+  ## Redis (non-HA, single instance)
+  redis:
+    image:
+      repository: docker.m.daocloud.io/library/redis
+      tag: 7.2.4-alpine
+
+  ## Redis HA
+  redis-ha:
+    enabled: false
+    image:
+      repository: docker.m.daocloud.io/library/redis
+      tag: 7.2.4-alpine
+
+  ## Configs
+  configs:
+    params:
+      server.insecure: true
+    cm:
+      application.resourceTrackingMethod: annotation
+      resource.exclusions: |
+        - apiGroups:
+            - "velero.io"
+          kinds:
+            - Backup
+          clusters:
+            - "*"
+    rbac:
+      policy.default: role:readonly
+      policy.csv: |
+        p, role:platform-admin, applications, *, */*, allow
+        p, role:platform-admin, clusters, *, *, allow
+        p, role:platform-admin, repositories, *, *, allow
+        p, role:platform-admin, projects, *, *, allow
+        g, platform-team, role:platform-admin

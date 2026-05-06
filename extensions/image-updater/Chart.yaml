@@ -1,0 +1,10 @@
+apiVersion: v2
+name: argocd-image-updater
+description: Argo CD Image Updater - auto-updates container image tags in Git
+type: application
+version: 1.0.0
+
+dependencies:
+  - name: argocd-image-updater
+    version: "0.11.0"
+    repository: "https://argoproj.github.io/argo-helm"

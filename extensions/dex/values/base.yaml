@@ -1,0 +1,24 @@
+## Dex SSO configuration
+## Dex is built into the argo-cd chart. Configure via platform values.
+## This file documents the extension pattern.
+
+## Example OIDC configuration (add to platform/values/base.yaml):
+# argo-cd:
+#   configs:
+#     cm:
+#       url: https://argocd.example.com
+#       dex.config: |
+#         connectors:
+#           - type: oidc
+#             id: your-idp
+#             name: "Company SSO"
+#             config:
+#               issuer: https://idp.example.com
+#               clientID: argocd
+#               clientSecret: $dex.oidc.clientSecret
+#               insecureEnableGroups: true
+#               scopes:
+#                 - openid
+#                 - profile
+#                 - email
+#                 - groups

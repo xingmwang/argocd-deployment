@@ -1,0 +1,5 @@
+apiVersion: v2
+name: argocd-bootstrap
+description: App-of-Apps bootstrap chart - generates Application resources for extensions and tenants
+type: application
+version: 1.0.0

@@ -1,0 +1,22 @@
+## Argo CD Notifications is built into the argo-cd chart (v2.6+).
+## Configure via platform/values/base.yaml under argo-cd.notifications.
+## This file serves as documentation for notification templates.
+
+## Example Slack configuration (add to platform values):
+# argo-cd:
+#   notifications:
+#     enabled: true
+#     secret:
+#       items:
+#         slack-token: "xoxb-your-token"
+#     notifiers:
+#       service.slack: |
+#         token: $slack-token
+#     templates:
+#       template.app-sync-succeeded: |
+#         message: |
+#           Application {{.app.metadata.name}} sync succeeded.
+#     triggers:
+#       trigger.on-sync-succeeded: |
+#         - when: app.status.operationState.phase in ['Succeeded']
+#           send: [app-sync-succeeded]

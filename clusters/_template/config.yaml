@@ -1,0 +1,8 @@
+## Copy this file when registering a new cluster.
+## Update name, server, and labels to match the target cluster.
+name: CLUSTER_NAME              # CHANGE: logical cluster name
+server: https://CLUSTER_API     # CHANGE: Kubernetes API server URL
+labels:
+  env: prod                     # CHANGE: environment label
+  region: us-east-1             # CHANGE: region label
+  provider: aws                 # CHANGE: cloud provider

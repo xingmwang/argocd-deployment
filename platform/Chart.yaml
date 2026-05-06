@@ -1,0 +1,10 @@
+apiVersion: v2
+name: argocd-platform
+description: Enterprise Argo CD deployment using official argo-cd Helm chart
+type: application
+version: 1.0.0
+
+dependencies:
+  - name: argo-cd
+    version: "7.7.5"
+    repository: "https://argoproj.github.io/argo-helm"

@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: TEAM_NAME          # CHANGE: your team name
+  namespace: argocd
+spec:
+  description: "TEAM_NAME team project"  # CHANGE: description
+
+  ## Allowed source repositories
+  sourceRepos:
+    - "https://github.com/your-org/TEAM_NAME-*"  # CHANGE: your repos
+
+  ## Allowed deployment targets
+  destinations:
+    - namespace: "TEAM_NAME-*"       # CHANGE: your namespace prefix
+      server: https://kubernetes.default.svc
+
+  ## Deny cluster-scoped resources
+  clusterResourceWhitelist: []
+
+  ## Allowed namespace-scoped resources
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: "*"
+    - group: "apps"
+      kind: "*"
+    - group: "networking.k8s.io"
+      kind: "*"
+    - group: "autoscaling"
+      kind: "*"

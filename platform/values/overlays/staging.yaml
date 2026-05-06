@@ -1,0 +1,14 @@
+argo-cd:
+  server:
+    replicas: 2
+    ingress:
+      enabled: true
+
+  repoServer:
+    replicas: 2
+
+  controller:
+    replicas: 1
+
+  redis-ha:
+    enabled: false

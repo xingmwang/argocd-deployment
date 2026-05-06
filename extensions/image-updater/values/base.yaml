@@ -1,0 +1,15 @@
+argocd-image-updater:
+  config:
+    registries: []
+    # - name: Docker Hub
+    #   api_url: https://registry-1.docker.io
+    #   prefix: docker.io
+    #   credentials: pullsecret:argocd/dockerhub-creds
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi

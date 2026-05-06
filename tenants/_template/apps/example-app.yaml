@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: TEAM_NAME-example-app    # CHANGE: unique app name
+  namespace: argocd
+spec:
+  project: TEAM_NAME             # CHANGE: must match project.yaml name
+
+  source:
+    repoURL: "https://github.com/your-org/TEAM_NAME-configs.git"  # CHANGE
+    targetRevision: HEAD
+    path: "overlays/dev"         # CHANGE: path to manifests
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: TEAM_NAME-dev     # CHANGE: must match allowed namespace prefix
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

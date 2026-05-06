@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-demo
+  namespace: argocd
+spec:
+  description: "Demo team - showcasing self-service onboarding"
+
+  sourceRepos:
+    - "https://github.com/argoproj/argocd-example-apps.git"
+
+  destinations:
+    - namespace: "team-demo-*"
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist: []
+
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: "*"
+    - group: "apps"
+      kind: "*"

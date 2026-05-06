@@ -1,0 +1,16 @@
+## Git repository URL (change to your repo)
+repoURL: "https://github.com/xingmwang/argocd-deployment.git"
+targetRevision: HEAD
+
+## Destination cluster (default: in-cluster)
+destinationServer: "https://127.0.0.1:59633"
+
+## Active extensions (add entries here to enable)
+extensions: []
+  # - name: image-updater
+  #   path: extensions/image-updater
+
+## Active tenants (auto-populated by onboard-tenant.sh)
+tenants:
+  - name: devops
+    path: tenants/devops
