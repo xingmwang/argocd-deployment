@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ENV=${1:-dev}
-NAMESPACE=argocd
+NAMESPACE=${ARGOCD_NAMESPACE:-argocd}
 RELEASE=argocd
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"

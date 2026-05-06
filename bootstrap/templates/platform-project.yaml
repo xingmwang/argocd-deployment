@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
   name: platform
-  namespace: argocd
+  namespace: {{ .Values.argoNamespace }}
 spec:
   description: Platform team - full cluster access
   sourceRepos:

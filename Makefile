@@ -1,13 +1,15 @@
 ENV ?= dev
-NAMESPACE := argocd
+NAMESPACE ?= argocd
 RELEASE := argocd
+
+export ARGOCD_NAMESPACE := $(NAMESPACE)
 
 .PHONY: help install upgrade add-tenant lint local-cluster clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install: ## First-time install (ENV=dev|staging|prod)
+install: ## First-time install (ENV=dev|staging|prod NAMESPACE=argocd)
 	@./scripts/install.sh $(ENV)
 
 upgrade: ## Upgrade Argo CD (after editing platform/Chart.yaml version)

@@ -2,8 +2,11 @@
 repoURL: "https://github.com/xingmwang/argocd-deployment.git"
 targetRevision: HEAD
 
+## Argo CD namespace (change if deploying to non-default namespace)
+argoNamespace: "argocd"
+
 ## Destination cluster (default: in-cluster)
-destinationServer: "https://127.0.0.1:59633"
+destinationServer: "https://kubernetes.default.svc"
 
 ## Active extensions (add entries here to enable)
 extensions: []

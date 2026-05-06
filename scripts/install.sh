@@ -2,16 +2,16 @@
 set -euo pipefail
 
 ENV=${1:-dev}
-NAMESPACE=argocd
+NAMESPACE=${ARGOCD_NAMESPACE:-argocd}
 RELEASE=argocd
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "==> Installing Argo CD (env: $ENV)"
+echo "==> Installing Argo CD (env: $ENV, namespace: $NAMESPACE)"
 
 # 1. Create namespace
 echo "  -> Creating namespace..."
-kubectl apply -f "$ROOT_DIR/bootstrap/templates/namespace.yaml"
+kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
 # 2. Build Helm dependencies (version-aware, only pull if needed)
 CHART_VERSION=$(grep -A3 'dependencies:' "$ROOT_DIR/platform/Chart.yaml" | grep 'version:' | awk '{print $2}' | tr -d '"')
@@ -45,14 +45,12 @@ helm upgrade --install "$RELEASE" "$ROOT_DIR/platform/" \
 echo "  -> Waiting for Argo CD server..."
 kubectl -n "$NAMESPACE" rollout status deployment "${RELEASE}-argocd-server" --timeout=120s
 
-# 5. Apply platform AppProject
-echo "  -> Applying platform AppProject..."
-kubectl apply -f "$ROOT_DIR/bootstrap/templates/platform-project.yaml" -n "$NAMESPACE"
-
-# 6. Apply bootstrap (App-of-Apps root)
-echo "  -> Applying bootstrap root application..."
+# 5. Apply bootstrap (App-of-Apps root)
+echo "  -> Applying bootstrap resources..."
 helm template bootstrap "$ROOT_DIR/bootstrap/" \
-  -f "$ROOT_DIR/bootstrap/values.yaml" | kubectl apply -n "$NAMESPACE" -f -
+  -f "$ROOT_DIR/bootstrap/values.yaml" \
+  --set argoNamespace="$NAMESPACE" \
+  | kubectl apply -n "$NAMESPACE" -f -
 
 echo ""
 echo "==> Argo CD installed successfully!"

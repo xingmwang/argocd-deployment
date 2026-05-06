@@ -5,7 +5,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: root
-  namespace: argocd
+  namespace: {{ .Values.argoNamespace }}
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -19,7 +19,7 @@ spec:
         - values.yaml
   destination:
     server: {{ .Values.destinationServer }}
-    namespace: argocd
+    namespace: {{ .Values.argoNamespace }}
   syncPolicy:
     automated:
       prune: true
@@ -33,7 +33,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: ext-{{ .name }}
-  namespace: argocd
+  namespace: {{ $.Values.argoNamespace }}
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -44,7 +44,7 @@ spec:
     path: {{ .path }}
   destination:
     server: {{ $.Values.destinationServer }}
-    namespace: argocd
+    namespace: {{ $.Values.argoNamespace }}
   syncPolicy:
     automated:
       prune: true
@@ -57,7 +57,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: tenant-{{ .name }}
-  namespace: argocd
+  namespace: {{ $.Values.argoNamespace }}
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -70,7 +70,7 @@ spec:
       recurse: true
   destination:
     server: {{ $.Values.destinationServer }}
-    namespace: argocd
+    namespace: {{ $.Values.argoNamespace }}
   syncPolicy:
     automated:
       prune: true

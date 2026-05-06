@@ -1,7 +1,7 @@
 ## Cluster metadata for ApplicationSet generators (future use)
 ## This file describes the cluster Argo CD is running on.
 name: in-cluster
-server: https://127.0.0.1:59633
+server: https://kubernetes.default.svc
 labels:
   env: dev
   region: local

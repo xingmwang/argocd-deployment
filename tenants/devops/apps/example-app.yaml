@@ -7,7 +7,7 @@ spec:
   project: devops             # CHANGE: must match project.yaml name
 
   source:
-    repoURL: "https://github.com/your-org/devops-configs.git"  # CHANGE
+    repoURL: "https://github.com/xingmwang/argocd-deployment.git"  # CHANGE
     targetRevision: HEAD
     path: "overlays/dev"         # CHANGE: path to manifests
 
