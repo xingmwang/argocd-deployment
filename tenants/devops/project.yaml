@@ -8,7 +8,7 @@ spec:
 
   ## Allowed source repositories
   sourceRepos:
-    - "https://github.com/xingmwang/argocd-deployment.git"  # CHANGE: your repos
+    - "https://github.com/argoproj/argocd-example-apps.git"
 
   ## Allowed deployment targets
   destinations:
