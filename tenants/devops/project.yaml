@@ -15,8 +15,14 @@ spec:
     - namespace: "devops-*"       # CHANGE: your namespace prefix
       server: https://kubernetes.default.svc
 
-  ## Deny cluster-scoped resources
-  clusterResourceWhitelist: []
+  ## Allowed cluster-scoped resources
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRole
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRoleBinding
 
   ## Allowed namespace-scoped resources
   namespaceResourceWhitelist:
