@@ -1,7 +1,5 @@
 # Startup Guide — 从零到 GitOps 全流程
 
-本文档串联整个部署流程，从环境准备到第一个应用成功同步。
-
 ---
 
 ## 前置条件
@@ -73,14 +71,13 @@ make install ENV=dev
 2. 检测本地 chart 版本，跳过网络下载
 3. `helm upgrade --install` 安装 Argo CD
 4. 等待 server 就绪
-5. 创建 platform AppProject
-6. 渲染 bootstrap 模板并 apply
+5. 渲染 bootstrap 模板并 apply（创建 Namespace + AppProject + tenant Application）
 
 ### 2.4 访问 Argo CD UI
 
 ```bash
 # 端口转发
-kubectl port-forward svc/argocd-argocd-server -n argocd 8080:443
+kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 # 获取初始密码
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
@@ -117,30 +114,11 @@ argocd account get-user-info
 argocd account update-password --account admin --current-password "$ARGOCD_PASSWORD" --new-password <your-new-password>
 ```
 
-### 2.7 常用 CLI 命令
-
-```bash
-# 查看所有应用
-argocd app list
-
-# 查看集群列表
-argocd cluster list
-
-# 查看仓库列表
-argocd repo list
-
-# 手动同步某个应用
-argocd app sync <app-name>
-
-# 查看应用详情
-argocd app get <app-name>
-```
-
 ---
 
 ## 阶段三：推送仓库到 Git 远端
 
-> **重要：** Argo CD 通过 Git 仓库拉取配置。在此之前，所有 Application 需手动 apply。
+> **重要：** Argo CD 从 Git 仓库拉取配置，代码必须推送后才能自动同步。
 
 ### 3.1 创建远端仓库
 
@@ -161,8 +139,6 @@ git push -u origin main
 
 ```yaml
 repoURL: "https://github.com/your-org/argocd-deployment.git"  # 改为你的仓库地址
-targetRevision: HEAD
-destinationServer: "https://kubernetes.default.svc"  # 保持默认即可
 ```
 
 ### 3.4 在 Argo CD 注册仓库（如为私有仓库）
@@ -174,91 +150,82 @@ argocd repo add https://github.com/your-org/argocd-deployment.git \
 
 ---
 
-## 阶段四：启用 GitOps 自动同步（Bootstrap）
+## 阶段四：验证部署
 
-### 4.1 Apply bootstrap
-
-```bash
-helm template bootstrap bootstrap/ -f bootstrap/values.yaml | kubectl apply -n argocd -f -
-```
-
-此命令会创建：
-- `root` Application（管理 bootstrap 自身）
-- `tenant-*` Application（每个 tenant 一个）
-- `ext-*` Application（每个 extension 一个）
-
-### 4.2 验证
+### 4.1 查看 Application 状态
 
 ```bash
-kubectl get application -n argocd
+# tenant Application（在 example namespace 中）
+kubectl get app -n example
+
+# 预期输出：
+# NAME                      SYNC STATUS   HEALTH STATUS
+# tenant-example            Synced        Healthy
+# example-guestbook-dev     Synced        Healthy
+# example-guestbook-uat     Synced        Healthy
 ```
 
-预期输出：
-```
-NAME              SYNC STATUS   HEALTH STATUS
-root              Synced        Healthy
-tenant-devops     Synced        Healthy
-```
-
-### 4.3 自举（可选，让 Argo CD 自管理 bootstrap）
-
-编辑 `bootstrap/static/install-bootstrap.yaml`，更新 `repoURL` 后：
+### 4.2 查看 workload
 
 ```bash
-kubectl apply -f bootstrap/static/install-bootstrap.yaml -n argocd
+kubectl get pods -n example-dev
+kubectl get pods -n example-uat
 ```
 
-自举后，修改 `bootstrap/values.yaml` 并 push 到 Git，Argo CD 会自动识别变更。
+### 4.3 通过 Argo CD CLI 查看
+
+```bash
+argocd app list
+argocd app get example-guestbook-dev
+```
 
 ---
 
-## 阶段五：Onboard 租户应用
+## 阶段五：Onboard 新租户
 
-### 5.1 创建 Tenant 目录
+### 5.1 交互式创建
 
 ```bash
-# 交互式
 make add-tenant
-
-# 或手动复制模板
-cp -r tenants/_template tenants/my-team
 ```
 
-### 5.2 配置 AppProject
+### 5.2 手动创建
 
-编辑 `tenants/my-team/project.yaml`：
+**步骤 1：** 编辑 `bootstrap/values.yaml`，添加 tenant 条目：
 
 ```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: AppProject
-metadata:
-  name: my-team
-  namespace: argocd
-spec:
-  sourceRepos:
-    - "https://github.com/argoproj/argocd-example-apps.git"  # 应用源码仓库
-  destinations:
-    - namespace: "my-team-*"    # 只允许部署到自己的 namespace
-      server: https://kubernetes.default.svc
-  clusterResourceWhitelist: []  # 禁止集群级资源
+tenants:
+  - name: example
+    namespace: example
+    path: tenants/example
+    sourceRepos:
+      - "https://github.com/argoproj/argocd-example-apps.git"
+  - name: my-team                              # ← 新增
+    namespace: my-team
+    path: tenants/my-team
+    sourceRepos:
+      - "https://github.com/org/my-app.git"
 ```
 
-### 5.3 添加 Application
+**步骤 2：** 创建 apps 目录并添加 Application YAML：
 
-创建 `tenants/my-team/apps/guestbook.yaml`：
+```bash
+mkdir -p tenants/my-team/apps
+```
 
 ```yaml
+# tenants/my-team/apps/my-app-dev.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: my-team-guestbook
-  namespace: argocd
+  name: my-team-my-app-dev
+  namespace: my-team
 spec:
   project: my-team
   source:
-    repoURL: "https://github.com/argoproj/argocd-example-apps.git"
+    repoURL: "https://github.com/org/my-app.git"
     targetRevision: HEAD
-    path: guestbook
+    path: deploy/dev
   destination:
     server: https://kubernetes.default.svc
     namespace: my-team-dev
@@ -270,38 +237,15 @@ spec:
       - CreateNamespace=true
 ```
 
-### 5.4 注册到 bootstrap
-
-编辑 `bootstrap/values.yaml`，添加 tenant：
-
-```yaml
-tenants:
-  - name: my-team
-    path: tenants/my-team
-```
-
-### 5.5 生效
+**步骤 3：** 生效
 
 ```bash
-# 方式 A：仓库已推远端（GitOps 模式）
+# 本地开发阶段
+helm template bootstrap bootstrap/ | kubectl apply -f -
+
+# 或 GitOps 模式
 git add . && git commit -m "feat(tenants): onboard my-team" && git push
-
-# 方式 B：本地开发阶段（手动 apply）
-helm template bootstrap bootstrap/ -f bootstrap/values.yaml | kubectl apply -n argocd -f -
-```
-
-### 5.6 验证应用部署
-
-```bash
-# 查看 Application 状态
-kubectl get app -n argocd
-
-# 查看部署的 Pod
-kubectl get pods -n my-team-dev
-
-# 或通过 Argo CD CLI
-argocd app list
-argocd app get my-team-guestbook
+# 然后重新 apply bootstrap
 ```
 
 ---
@@ -321,25 +265,23 @@ helm pull argo-cd --repo https://argoproj.github.io/argo-helm --version <NEW_VER
 make upgrade ENV=dev
 ```
 
-### 添加 Extension
+### 更新 Tenant 配置
+
+修改 `bootstrap/values.yaml` 后重新 apply：
 
 ```bash
-# 1. 取消 values.yaml 中的注释
-vim bootstrap/values.yaml
-# extensions:
-#   - name: image-updater
-#     path: extensions/image-updater
-
-# 2. 推送或手动 apply
-git add . && git commit -m "feat(ext): enable image-updater" && git push
+helm template bootstrap bootstrap/ | kubectl apply -f -
 ```
 
 ### 移除 Tenant
 
 ```bash
 # 1. 从 bootstrap/values.yaml 删除 tenant 条目
-# 2. 推送 → Argo CD 自动 prune 对应 Application
-# 3.（可选）删除 tenants/team-name/ 目录
+# 2. 重新 apply bootstrap（会删除该 tenant 的 Namespace、AppProject、tenant Application）
+helm template bootstrap bootstrap/ | kubectl apply -f -
+# 3.（可选）手动清理环境 namespace
+kubectl delete ns my-team-dev my-team-uat
+# 4. 删除 tenants/my-team/ 目录
 ```
 
 ---
@@ -351,11 +293,11 @@ git add . && git commit -m "feat(ext): enable image-updater" && git push
 | 安装/更新 Argo CD | `make install ENV=dev` |
 | 升级 Argo CD | `make upgrade ENV=dev` |
 | 新增租户 | `make add-tenant` |
+| 刷新 bootstrap | `helm template bootstrap bootstrap/ \| kubectl apply -f -` |
 | 验证配置 | `make lint` |
-| 刷新 bootstrap | `helm template bootstrap bootstrap/ -f bootstrap/values.yaml \| kubectl apply -n argocd -f -` |
-| 查看所有 Application | `kubectl get app -n argocd` |
-| 查看同步状态 | `argocd app list` |
-| 端口转发 UI | `kubectl port-forward svc/argocd-argocd-server -n argocd 8080:443` |
+| 查看 tenant 应用 | `kubectl get app -n {tenant}` |
+| 查看环境 workload | `kubectl get pods -n {tenant}-{env}` |
+| 端口转发 UI | `kubectl port-forward svc/argocd-server -n argocd 8080:443` |
 
 ---
 
@@ -365,7 +307,9 @@ git add . && git commit -m "feat(ext): enable image-updater" && git push
 |------|------|
 | Chart 下载失败 | 手动下载 tgz 放入 `platform/charts/` |
 | 镜像拉取失败 | 检查 `platform/values/base.yaml` 中的镜像地址 |
-| Application 状态 Unknown | `argocd app get <name>` 查看错误详情 |
-| Tenant 无权限 | 检查 `project.yaml` 的 sourceRepos 和 destinations |
+| Application 状态 Unknown | `argocd app get <name>` 或 `kubectl describe app -n {tenant} <name>` |
+| "repo not permitted in project" | 检查 `bootstrap/values.yaml` 中 tenant 的 `sourceRepos` |
+| "app is not allowed in project" | 确认 AppProject 的 `sourceNamespaces` 包含 tenant namespace |
+| "namespace not permitted" | 确认 AppProject 的 `destinations` 包含目标 namespace |
 | 仓库连接失败 | `argocd repo list` 确认仓库注册状态 |
 | Helm release 冲突 | `helm list -n argocd` 检查已有 release |

@@ -1,79 +1,74 @@
 {{- /*
-  Root Application - manages itself (bootstrap self-management)
+  Bootstrap 资源：通过 helm template | kubectl apply 一次性应用
+  不依赖 Argo CD 管理自身，避免跨 namespace 部署问题
+
+  生成资源：
+  1. Tenant Namespaces（Application in Any Namespace 需要）
+  2. Tenant AppProjects（在 argocd namespace，定义权限边界）
+  3. Tenant Applications（在 tenant namespace，指向 apps/ 目录）
 */ -}}
+
+{{- range .Values.tenants }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .namespace }}
+  labels:
+    argocd.argoproj.io/tenant: "{{ .name }}"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.argoNamespace }}
+spec:
+  description: "{{ .name }} project"
+  sourceNamespaces:
+    - "{{ .namespace }}"
+  sourceRepos:
+    - "{{ $.Values.repoURL }}"
+  {{- range .sourceRepos }}
+    - "{{ . }}"
+  {{- end }}
+  destinations:
+    - namespace: "{{ .namespace }}"
+      server: {{ $.Values.destinationServer }}
+    - namespace: "{{ .namespace }}-*"
+      server: {{ $.Values.destinationServer }}
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRole
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root
-  namespace: {{ .Values.argoNamespace }}
+  name: tenant-{{ .name }}
+  namespace: {{ .namespace }}
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: platform
+  project: {{ .name }}
   source:
-    repoURL: {{ .Values.repoURL }}
-    targetRevision: {{ .Values.targetRevision }}
-    path: bootstrap
-    helm:
-      valueFiles:
-        - values.yaml
+    repoURL: {{ $.Values.repoURL }}
+    targetRevision: {{ $.Values.targetRevision }}
+    path: {{ .path }}/apps
+    directory:
+      recurse: true
   destination:
-    server: {{ .Values.destinationServer }}
-    namespace: {{ .Values.argoNamespace }}
+    server: {{ $.Values.destinationServer }}
+    namespace: {{ .namespace }}
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
----
-{{- /* Generate one Application per extension */ -}}
-{{- range .Values.extensions }}
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: ext-{{ .name }}
-  namespace: {{ $.Values.argoNamespace }}
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: platform
-  source:
-    repoURL: {{ $.Values.repoURL }}
-    targetRevision: {{ $.Values.targetRevision }}
-    path: {{ .path }}
-  destination:
-    server: {{ $.Values.destinationServer }}
-    namespace: {{ $.Values.argoNamespace }}
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
----
-{{- end }}
-{{- /* Generate one Application per tenant (syncs their project + apps) */ -}}
-{{- range .Values.tenants }}
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: tenant-{{ .name }}
-  namespace: {{ $.Values.argoNamespace }}
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: platform
-  source:
-    repoURL: {{ $.Values.repoURL }}
-    targetRevision: {{ $.Values.targetRevision }}
-    path: {{ .path }}
-    directory:
-      recurse: true
-  destination:
-    server: {{ $.Values.destinationServer }}
-    namespace: {{ $.Values.argoNamespace }}
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
----
 {{- end }}

@@ -3,8 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TENANTS_DIR="$ROOT_DIR/tenants"
-TEMPLATE_DIR="$TENANTS_DIR/_template"
+VALUES_FILE="$ROOT_DIR/bootstrap/values.yaml"
 
 echo "==> Tenant Onboarding"
 echo ""
@@ -22,7 +21,7 @@ if [[ ! "$TEAM_NAME" =~ ^[a-z][a-z0-9-]*$ ]]; then
   exit 1
 fi
 
-TARGET_DIR="$TENANTS_DIR/$TEAM_NAME"
+TARGET_DIR="$ROOT_DIR/tenants/$TEAM_NAME/apps"
 
 if [[ -d "$TARGET_DIR" ]]; then
   echo "Error: Tenant '$TEAM_NAME' already exists at $TARGET_DIR"
@@ -37,31 +36,53 @@ if [[ -z "$REPO_URL" ]]; then
   exit 1
 fi
 
-# Copy template
+# Create tenant apps directory
 echo ""
 echo "  -> Creating tenant directory..."
-cp -r "$TEMPLATE_DIR" "$TARGET_DIR"
+mkdir -p "$TARGET_DIR"
 
-# Replace placeholders
-echo "  -> Configuring tenant..."
-if [[ "$(uname)" == "Darwin" ]]; then
-  find "$TARGET_DIR" -type f -name "*.yaml" -exec sed -i '' "s/TEAM_NAME/$TEAM_NAME/g" {} \;
-  find "$TARGET_DIR" -type f -name "*.yaml" -exec sed -i '' "s|https://github.com/your-org/TEAM_NAME-\*|${REPO_URL}|g" {} \;
-else
-  find "$TARGET_DIR" -type f -name "*.yaml" -exec sed -i "s/TEAM_NAME/$TEAM_NAME/g" {} \;
-  find "$TARGET_DIR" -type f -name "*.yaml" -exec sed -i "s|https://github.com/your-org/TEAM_NAME-\*|${REPO_URL}|g" {} \;
-fi
+# Create a sample app placeholder
+cat > "$TARGET_DIR/.gitkeep" <<EOF
+EOF
 
 # Add to bootstrap values
-echo "  -> Adding tenant to bootstrap values..."
-echo "  - name: $TEAM_NAME
-    path: tenants/$TEAM_NAME" >> "$ROOT_DIR/bootstrap/values.yaml"
+echo "  -> Adding tenant to bootstrap/values.yaml..."
+cat >> "$VALUES_FILE" <<EOF
+  - name: $TEAM_NAME
+    namespace: $TEAM_NAME
+    path: tenants/$TEAM_NAME
+    sourceRepos:
+      - "$REPO_URL"
+EOF
 
 echo ""
-echo "==> Tenant '$TEAM_NAME' created at: $TARGET_DIR"
+echo "==> Tenant '$TEAM_NAME' created!"
 echo ""
 echo "Next steps:"
-echo "  1. Review and edit: $TARGET_DIR/project.yaml"
-echo "  2. Add your applications under: $TARGET_DIR/apps/"
-echo "  3. Commit and push (or open a PR)"
+echo "  1. Add Application YAML files under: tenants/$TEAM_NAME/apps/"
+echo "  2. Apply bootstrap: helm template bootstrap bootstrap/ | kubectl apply -f -"
+echo "  3. Commit and push"
+echo ""
+echo "Example app file (tenants/$TEAM_NAME/apps/my-app-dev.yaml):"
+echo ""
+echo "  apiVersion: argoproj.io/v1alpha1"
+echo "  kind: Application"
+echo "  metadata:"
+echo "    name: ${TEAM_NAME}-my-app-dev"
+echo "    namespace: ${TEAM_NAME}"
+echo "  spec:"
+echo "    project: ${TEAM_NAME}"
+echo "    source:"
+echo "      repoURL: \"$REPO_URL\""
+echo "      targetRevision: HEAD"
+echo "      path: deploy/dev"
+echo "    destination:"
+echo "      server: https://kubernetes.default.svc"
+echo "      namespace: ${TEAM_NAME}-dev"
+echo "    syncPolicy:"
+echo "      automated:"
+echo "        prune: true"
+echo "        selfHeal: true"
+echo "      syncOptions:"
+echo "        - CreateNamespace=true"
 echo ""

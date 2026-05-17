@@ -51,6 +51,9 @@ argo-cd:
   configs:
     params:
       server.insecure: true
+      ## Application in Any Namespace — 允许在指定 namespace 中创建 Application
+      ## 使用通配符 "*" 允许所有 namespace，或逗号分隔的列表如 "devops,team-b,team-c"
+      application.namespaces: "*"
     cm:
       application.resourceTrackingMethod: annotation
       resource.exclusions: |

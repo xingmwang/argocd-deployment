@@ -46,7 +46,7 @@ helm upgrade "$RELEASE" "$ROOT_DIR/platform/" \
 
 # 4. Verify
 echo "  -> Verifying deployment..."
-kubectl -n "$NAMESPACE" rollout status deployment "${RELEASE}-argocd-server" --timeout=120s
+kubectl -n "$NAMESPACE" rollout status deployment "${RELEASE}-server" --timeout=120s
 
 echo ""
 echo "==> Upgrade complete!"

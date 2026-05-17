@@ -1,19 +1,18 @@
-## Git repository URL (change to your repo)
+## Git repository URL (本仓库地址)
 repoURL: "https://github.com/xingmwang/argocd-deployment.git"
 targetRevision: HEAD
 
-## Argo CD namespace (change if deploying to non-default namespace)
+## Argo CD namespace
 argoNamespace: "argocd"
 
-## Destination cluster (default: in-cluster)
+## Destination cluster (in-cluster)
 destinationServer: "https://kubernetes.default.svc"
 
-## Active extensions (add entries here to enable)
-extensions: []
-  # - name: image-updater
-  #   path: extensions/image-updater
-
-## Active tenants (auto-populated by onboard-tenant.sh)
+## Tenants - 每个 tenant 一个条目
+## 新增 tenant 只需在此添加条目，然后创建 tenants/{name}/apps/ 目录
 tenants:
-  - name: devops
-    path: tenants/devops
+  - name: example
+    namespace: example
+    path: tenants/example
+    sourceRepos:
+      - "https://github.com/argoproj/argocd-example-apps.git"

@@ -1,19 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: team-example-backend-api
-  namespace: argocd
+  name: example-guestbook-uat
+  namespace: example
 spec:
-  project: team-example
+  project: example
 
   source:
-    repoURL: "https://github.com/your-org/team-example-configs.git"
+    repoURL: "https://github.com/argoproj/argocd-example-apps.git"
     targetRevision: HEAD
-    path: "backend-api/overlays/dev"
+    path: guestbook
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: team-example-dev
+    namespace: example-uat
 
   syncPolicy:
     automated:

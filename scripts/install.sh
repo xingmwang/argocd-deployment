@@ -43,20 +43,17 @@ helm upgrade --install "$RELEASE" "$ROOT_DIR/platform/" \
 
 # 4. Wait for Argo CD server to be ready
 echo "  -> Waiting for Argo CD server..."
-kubectl -n "$NAMESPACE" rollout status deployment "${RELEASE}-argocd-server" --timeout=120s
+kubectl -n "$NAMESPACE" rollout status deployment "${RELEASE}-server" --timeout=120s
 
-# 5. Apply bootstrap (App-of-Apps root)
+# 5. Apply bootstrap (Namespaces + AppProjects + tenant Applications)
 echo "  -> Applying bootstrap resources..."
-helm template bootstrap "$ROOT_DIR/bootstrap/" \
-  -f "$ROOT_DIR/bootstrap/values.yaml" \
-  --set argoNamespace="$NAMESPACE" \
-  | kubectl apply -n "$NAMESPACE" -f -
+helm template bootstrap "$ROOT_DIR/bootstrap/" | kubectl apply -f -
 
 echo ""
-echo "==> Argo CD installed successfully!"
+echo "==> Done! Argo CD is running and tenants are configured."
 echo ""
 echo "Access the UI:"
-echo "  kubectl port-forward svc/${RELEASE}-argocd-server -n $NAMESPACE 8080:443"
+echo "  kubectl port-forward svc/${RELEASE}-server -n $NAMESPACE 8080:443"
 echo ""
 echo "Get admin password:"
 echo "  kubectl -n $NAMESPACE get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
